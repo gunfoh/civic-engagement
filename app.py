@@ -20,7 +20,7 @@ class CivicEngagementApp:
 
         self.root = root
         self.root.title("Civic Engagement Platform")
-        self.root.geometry("500x400") # Increased height for new button
+        self.root.geometry("500x400")
         self.root.configure(bg="#f0f0f0")
 
         main_frame = tk.Frame(self.root, padx=20, pady=20, bg="#f0f0f0")
@@ -33,25 +33,70 @@ class CivicEngagementApp:
         )
         title_label.pack(pady=(10, 20))
 
+        # --- Button Styles and Colors ---
         button_style = {
-            "font": ("Helvetica", 12), "bg": "#007BFF", "fg": "white",
-            "activebackground": "#0056b3", "activeforeground": "white",
-            "relief": "flat", "borderwidth": 0, "width": 25, "pady": 10
+            "font": ("Helvetica", 12), "fg": "white",
+            "activeforeground": "white", "relief": "flat", 
+            "borderwidth": 0, "width": 25, "pady": 10
         }
-
-        tk.Button(main_frame, text="Report a New Issue", command=self.open_report_window, **button_style).pack(pady=8)
-        tk.Button(main_frame, text="View All Reported Issues", command=self.open_view_window, **button_style).pack(pady=8)
         
-        # --- New Heatmap Button ---
-        heatmap_button_style = button_style.copy()
-        heatmap_button_style['bg'] = "#17a2b8"
-        heatmap_button_style['activebackground'] = "#138496"
-        tk.Button(main_frame, text="View Issue Heatmap", command=self.open_heatmap_window, **heatmap_button_style).pack(pady=8)
+        # Define base and hover colors
+        blue_normal = "#007BFF"
+        blue_hover = "#3395FF"
+        teal_normal = "#17a2b8"
+        teal_hover = "#20c9e0"
+        red_normal = "#dc3545"
+        red_hover = "#e45765"
 
-        exit_button_style = button_style.copy()
-        exit_button_style['bg'] = "#dc3545"
-        exit_button_style['activebackground'] = "#c82333"
-        tk.Button(main_frame, text="Exit", command=self.root.quit, **exit_button_style).pack(pady=8)
+        # --- Report Button ---
+        report_button = tk.Button(main_frame, text="Report a New Issue", command=self.open_report_window, 
+                                   bg=blue_normal, activebackground=blue_normal, **button_style)
+        report_button.pack(pady=8)
+        report_button.bind("<Enter>", lambda e: self.animate_color(report_button, blue_normal, blue_hover))
+        report_button.bind("<Leave>", lambda e: self.animate_color(report_button, blue_hover, blue_normal))
+
+        # --- View Button ---
+        view_button = tk.Button(main_frame, text="View All Reported Issues", command=self.open_view_window, 
+                                 bg=blue_normal, activebackground=blue_normal, **button_style)
+        view_button.pack(pady=8)
+        view_button.bind("<Enter>", lambda e: self.animate_color(view_button, blue_normal, blue_hover))
+        view_button.bind("<Leave>", lambda e: self.animate_color(view_button, blue_hover, blue_normal))
+        
+        # --- Heatmap Button ---
+        heatmap_button = tk.Button(main_frame, text="View Issue Heatmap", command=self.open_heatmap_window, 
+                                   bg=teal_normal, activebackground=teal_normal, **button_style)
+        heatmap_button.pack(pady=8)
+        heatmap_button.bind("<Enter>", lambda e: self.animate_color(heatmap_button, teal_normal, teal_hover))
+        heatmap_button.bind("<Leave>", lambda e: self.animate_color(heatmap_button, teal_hover, teal_normal))
+
+        # --- Exit Button ---
+        exit_button = tk.Button(main_frame, text="Exit", command=self.root.quit, 
+                                bg=red_normal, activebackground=red_normal, **button_style)
+        exit_button.pack(pady=8)
+        exit_button.bind("<Enter>", lambda e: self.animate_color(exit_button, red_normal, red_hover))
+        exit_button.bind("<Leave>", lambda e: self.animate_color(exit_button, red_hover, red_normal))
+
+    def animate_color(self, widget, from_hex, to_hex, steps=15):
+        """Animates a widget's background color from one hex color to another."""
+        from_rgb = tuple(int(from_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+        to_rgb = tuple(int(to_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+
+        def update_step(step):
+            if step > steps:
+                widget.config(bg=to_hex, activebackground=to_hex)
+                return
+
+            new_rgb = [int(from_rgb[i] + (to_rgb[i] - from_rgb[i]) * (step / steps)) for i in range(3)]
+            new_hex = f"#{new_rgb[0]:02x}{new_rgb[1]:02x}{new_rgb[2]:02x}"
+            
+            try:
+                widget.config(bg=new_hex, activebackground=new_hex)
+                self.root.after(10, lambda: update_step(step + 1))
+            except tk.TclError:
+                # This can happen if the window is closed during the animation.
+                pass
+            
+        update_step(1)
 
     def open_report_window(self):
         """Opens a new window with a map for reporting an issue."""
@@ -216,11 +261,6 @@ class CivicEngagementApp:
             center_coords = cluster['center']
             marker_text = f"{num_reports} Report" + ("s" if num_reports > 1 else "")
             
-            # --- FIX ---
-            # The command function from the library passes the marker object as an argument.
-            # We create a lambda that accepts this argument (which we name '_' to show it's ignored)
-            # and then calls our function with the 'reports' list that was correctly captured
-            # from the loop by setting it as a default argument in the lambda.
             map_widget.set_marker(
                 center_coords[0], 
                 center_coords[1], 
